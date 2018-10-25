@@ -107,34 +107,19 @@ public class S3EndpointResolutionTest {
     }
 
     /**
-     * If a custom, non-s3 endpoint is used we revert to path style addressing. This is useful for alternative S3 implementations
-     * like Ceph that do not support virtual style addressing.
+     * If a custom S3 endpoint is provided (like s3-external-1 or a FIPS endpoint) then we should still use virtual addressing
+     * when possible.
      */
     @Test
-    public void nonS3EndpointProvided_DoesNotUseVirtualAddressing() throws Exception {
+    public void customS3EndpointProvided_UsesVirtualAddressing() throws Exception {
         URI customEndpoint = URI.create("https://foobar.amazonaws.com");
         mockHttpClient.stubNextResponse(mockListObjectsResponse());
         S3Client s3Client = clientBuilder().endpointOverride(customEndpoint).build();
 
         s3Client.listObjects(ListObjectsRequest.builder().bucket(BUCKET).build());
 
-        assertEndpointMatches(mockHttpClient.getLastRequest(), customEndpoint.toString() + "/" + BUCKET);
-    }
-
-    /**
-     * If a custom S3 endpoint is provided (like s3-external-1 or a FIPS endpoint) then we should still use virtual addressing
-     * when possible.
-     */
-    @Test
-    public void customS3EndpointProvided_UsesVirtualAddressing() throws Exception {
-        URI customEndpoint = URI.create("https://s3-external-1.amazonaws.com");
-        mockHttpClient.stubNextResponse(mockListObjectsResponse());
-        S3Client s3Client = clientBuilder().endpointOverride(customEndpoint).build();
-
-        s3Client.listObjects(ListObjectsRequest.builder().bucket(BUCKET).build());
-
         assertEndpointMatches(mockHttpClient.getLastRequest(),
-                              String.format("https://%s.s3-external-1.amazonaws.com", BUCKET));
+                              String.format("https://%s.foobar.amazonaws.com", BUCKET));
     }
 
     /**
